@@ -33,25 +33,17 @@
       <div><div id="authTitle" class="auth-title">Welcome Back</div><div id="authSubtitle" class="auth-subtitle">Sign in to continue to IzVault.</div></div>
       <button id="authClose" class="auth-close" type="button" aria-label="Close">×</button>
     </div>
-
     <form id="authLoginForm" class="auth-form">
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
+      <label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
       <button class="auth-submit" type="submit">Login</button>
     </form>
-
     <form id="authRegisterForm" class="auth-form" hidden>
-      <label for="registerUsername">Username</label>
-      <input id="registerUsername" type="text" autocomplete="username" minlength="3" required placeholder="izvaultuser">
-      <label for="registerEmail">Email</label>
-      <input id="registerEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-      <label for="registerPassword">Password</label>
-      <input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required placeholder="At least 6 characters">
+      <label for="registerUsername">Username</label><input id="registerUsername" type="text" autocomplete="username" minlength="3" required placeholder="izvaultuser">
+      <label for="registerEmail">Email</label><input id="registerEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      <label for="registerPassword">Password</label><input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required placeholder="At least 6 characters">
       <button class="auth-submit" type="submit">Create Account</button>
     </form>
-
     <div id="authAccount" class="auth-account" hidden></div>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
     <div class="auth-switch"><span id="switchRegister">Don't have an account? <button type="button">Create one</button></span><span id="switchLogin" hidden>Already have an account? <button type="button">Login</button></span></div>
@@ -64,28 +56,19 @@
 <p class="label">DIGITAL VAULT</p>
 <h1>Build.<br>Organise.<br>Inspire.</h1>
 <p class="subtitle">A premium home for ideas, projects, resources and digital creations.</p>
-<div class="hero-buttons">
-<a href="#projects" class="primary">Explore</a>
-<a href="#projects" class="secondary">Latest Projects</a>
-</div>
+<div class="hero-buttons"><a href="#projects" class="primary">Explore</a><a href="#projects" class="secondary">Latest Projects</a></div>
 </section>
-
 <section id="projects" class="projects">
 <div class="section-title">Latest Projects</div>
 <div class="cards">
+<a class="card" href="reading-tracker.html" style="text-decoration:none;color:inherit"><div class="icon"><i class="fa-solid fa-book-open"></i></div><h3>Reading Tracker</h3><p>Cloud-synced reading list.</p></a>
 <div class="card"><div class="icon"><i class="fa-solid fa-globe"></i></div><h3>Website</h3><p>Current version of IzVault.</p></div>
 <div class="card"><div class="icon"><i class="fa-solid fa-folder"></i></div><h3>Resources</h3><p>Files and useful downloads.</p></div>
 <div class="card"><div class="icon"><i class="fa-solid fa-box-archive"></i></div><h3>Archive</h3><p>Older projects and experiments.</p></div>
-<div class="card"><div class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div><h3>Coming Soon</h3><p>New updates arriving soon.</p></div>
 </div>
 </section>
-
 <section id="about" class="about"><div class="section-title">About</div><p>IZVAULT is a minimal digital space designed to organise projects, ideas and resources with simplicity.</p></section>
-<section id="contact" class="contact"><div class="section-title">Connect</div><div class="socials">
-<a href="#"><i class="fa-brands fa-github"></i>GitHub</a>
-<a href="#"><i class="fa-brands fa-youtube"></i>YouTube</a>
-<a href="#"><i class="fa-solid fa-palette"></i>Canva</a>
-</div></section>
+<section id="contact" class="contact"><div class="section-title">Connect</div><div class="socials"><a href="#"><i class="fa-brands fa-github"></i>GitHub</a><a href="#"><i class="fa-brands fa-youtube"></i>YouTube</a><a href="#"><i class="fa-solid fa-palette"></i>Canva</a></div></section>
 </main>
 <footer><p>© 2026 IZVAULT</p></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
