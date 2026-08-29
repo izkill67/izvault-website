@@ -33,6 +33,7 @@ function openAuth(mode = 'login') {
   authLoginForm.hidden = isRegister || isAccount;
   authRegisterForm.hidden = !isRegister || isAccount;
   authAccount.hidden = !isAccount;
+  logoutBtn.hidden = !isAccount;
   switchRegister.hidden = isRegister || isAccount;
   switchLogin.hidden = !isRegister || isAccount;
 }
@@ -51,8 +52,6 @@ authModal?.addEventListener('click', (event) => {
 });
 switchRegister?.addEventListener('click', () => openAuth('register'));
 switchLogin?.addEventListener('click', () => openAuth('login'));
-
-// Register
 
 authRegisterForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -86,8 +85,6 @@ authRegisterForm?.addEventListener('submit', async (event) => {
     showMessage('Account dibuat. Semak email untuk pengesahan sebelum login.');
   }
 });
-
-// Login
 
 authLoginForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
