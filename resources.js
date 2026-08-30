@@ -1,205 +1,32 @@
-const SUPABASE_URL = 'https://imkbmemvoqbbedbljueu.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE';
-const { createClient } = window.supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-const BUCKET = 'resources';
-let user = null;
-let currentPath = '';
-let pendingAction = null;
-let allItems = [];
-
-const $ = id => document.getElementById(id);
-const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const cleanName = value => String(value || '').trim().replace(/[\\/]/g,'-').replace(/\.{2,}/g,'.').slice(0,160);
-const pathJoin = (a,b) => [a,b].filter(Boolean).join('/');
-const toast = msg => { $('toast').textContent = msg; $('toast').classList.remove('hidden'); clearTimeout(window.__toast); window.__toast=setTimeout(()=>$('toast').classList.add('hidden'),2800); };
-const openModal = id => $(id).classList.add('show');
-const closeModal = id => $(id).classList.remove('show');
-
-function formatBytes(bytes){
-  if(!bytes) return '0 B';
-  const units=['B','KB','MB','GB','TB']; const i=Math.min(Math.floor(Math.log(bytes)/Math.log(1024)),units.length-1);
-  return `${(bytes/Math.pow(1024,i)).toFixed(i?1:0)} ${units[i]}`;
-}
-function iconFor(name, folder=false){
-  if(folder) return 'fa-folder';
-  const ext=name.split('.').pop().toLowerCase();
-  if(['jpg','jpeg','png','gif','webp','svg'].includes(ext)) return 'fa-image';
-  if(['pdf'].includes(ext)) return 'fa-file-pdf';
-  if(['doc','docx','txt','rtf'].includes(ext)) return 'fa-file-lines';
-  if(['ppt','pptx'].includes(ext)) return 'fa-file-powerpoint';
-  if(['xls','xlsx','csv'].includes(ext)) return 'fa-file-excel';
-  if(['zip','rar','7z'].includes(ext)) return 'fa-file-zipper';
-  if(['psd','ai','fig'].includes(ext)) return 'fa-palette';
-  if(['mp4','mov','webm','mkv'].includes(ext)) return 'fa-file-video';
-  return 'fa-file';
-}
-
-async function init(){
-  const {data:{session}} = await sb.auth.getSession();
-  user=session?.user||null;
-  if(!user){
-    toast('Please log in to access cloud Resources.');
-    setTimeout(()=>location.href='index.html',900);
-    return;
-  }
-  $('accountName').textContent = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
-  bind();
-  await load();
-}
-
-function bind(){
-  $('uploadBtn').onclick=()=>$('fileInput').click();
-  $('fileInput').onchange=async e=>{ if(e.target.files.length) await uploadFiles([...e.target.files]); e.target.value=''; };
-  $('newFolderBtn').onclick=()=>{ $('folderName').value=''; openModal('folderModal'); setTimeout(()=>$('folderName').focus(),50); };
-  $('createFolder').onclick=createFolder;
-  $('refreshBtn').onclick=load;
-  $('search').oninput=render;
-  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-  $('renameSave').onclick=renameItem;
-  $('deleteConfirm').onclick=deleteItem;
-}
-
-async function listObjects(prefix=''){
-  const {data,error}=await sb.storage.from(BUCKET).list(prefix,{limit:1000,sortBy:{column:'name',order:'asc'}});
-  if(error) throw error;
-  return data||[];
-}
-
-async function load(){
-  try{
-    const items=await listObjects(currentPath);
-    allItems=items;
-    render();
-  }catch(e){
-    console.error(e);
-    toast(`Could not load Resources: ${e.message||'Storage is not configured.'}`);
-    $('grid').innerHTML='<div class="empty"><i class="fa-solid fa-cloud"></i><br><br>Cloud storage is not ready yet.<br>Run resources-storage.sql in Supabase SQL Editor.</div>';
-  }
-}
-
-function render(){
-  const q=$('search').value.trim().toLowerCase();
-  const items=allItems.filter(x=>!q||x.name.toLowerCase().includes(q));
-  const folders=items.filter(x=>x.id===null || x.metadata===null || x.name.endsWith('/'));
-  const files=items.filter(x=>!(x.id===null || x.metadata===null || x.name.endsWith('/')) && x.name!=='.folder');
-  $('fileCount').textContent=files.length;
-  $('folderCount').textContent=folders.length;
-  $('currentFolder').textContent=currentPath ? currentPath.split('/').pop() : 'Root';
-  renderPath();
-  if(!items.length || (folders.length===0 && files.length===0)){
-    $('grid').innerHTML='<div class="empty"><i class="fa-solid fa-folder-open" style="font-size:30px"></i><br><br>No files or folders here yet.<br>Upload a file or create a folder to get started.</div>';
-    return;
-  }
-  $('grid').innerHTML=[...folders,...files].map(item=>{
-    const folder=folders.includes(item);
-    const name=folder?item.name.replace(/\/$/,''):item.name;
-    const meta=folder?'Folder':'File • '+formatBytes(item.metadata?.size||0);
-    return `<article class="item" data-name="${esc(name)}" data-folder="${folder}">
-      <div><div class="itemtop"><div class="icon"><i class="fa-solid ${iconFor(name,folder)}"></i></div><button class="mini" style="flex:0 0 auto" onclick="openItemMenu(event,${JSON.stringify(name)},${folder})">•••</button></div>
-      <div class="name">${esc(name)}</div><div class="meta">${meta}</div></div>
-      <div class="itemactions">${folder?`<button class="mini" onclick="openFolder(${JSON.stringify(name)})">Open</button>`:`<button class="mini" onclick="downloadFile(${JSON.stringify(name)})">Download</button>`}<button class="mini" onclick="startRename(${JSON.stringify(name)},${folder})">Rename</button></div>
-    </article>`;
-  }).join('');
-}
-
-function renderPath(){
-  const parts=currentPath?currentPath.split('/'):[];
-  let html='<button onclick="goRoot()"><i class="fa-solid fa-house"></i> Root</button>';
-  let built='';
-  parts.forEach((p,i)=>{ built=pathJoin(built,p); html+=`<span>/</span><button onclick="goPath(${JSON.stringify(built)})">${esc(p)}</button>`; });
-  $('path').innerHTML=html;
-}
-window.goRoot=()=>{currentPath='';load();};
-window.goPath=p=>{currentPath=p;load();};
-window.openFolder=name=>{currentPath=pathJoin(currentPath,name);load();};
-
-async function uploadFiles(files){
-  if(!files.length)return;
-  let ok=0;
-  for(const file of files){
-    const name=cleanName(file.name); if(!name)continue;
-    const objectPath=pathJoin(user.id,pathJoin(currentPath,name));
-    const {error}=await sb.storage.from(BUCKET).upload(objectPath,file,{upsert:false,contentType:file.type||'application/octet-stream'});
-    if(error){ toast(`${name}: ${error.message}`); continue; }
-    ok++;
-  }
-  if(ok) toast(`${ok} file${ok>1?'s':''} uploaded to the cloud.`);
-  await load();
-}
-
-async function createFolder(){
-  const name=cleanName($('folderName').value);
-  if(!name)return toast('Enter a folder name.');
-  const objectPath=pathJoin(user.id,pathJoin(currentPath,pathJoin(name,'.folder')));
-  const {error}=await sb.storage.from(BUCKET).upload(objectPath,new Blob(['IzVault folder'],{type:'text/plain'}),{upsert:false,contentType:'text/plain'});
-  if(error)return toast(`Could not create folder: ${error.message}`);
-  closeModal('folderModal'); toast('Folder created.'); await load();
-}
-
-async function downloadFile(name){
-  const objectPath=pathJoin(user.id,pathJoin(currentPath,name));
-  const {data,error}=await sb.storage.from(BUCKET).createSignedUrl(objectPath,300);
-  if(error)return toast(`Download failed: ${error.message}`);
-  const a=document.createElement('a'); a.href=data.signedUrl; a.target='_blank'; a.rel='noopener'; a.download=name; a.click();
-}
-window.downloadFile=downloadFile;
-
-window.openItemMenu=(event,name,folder)=>{
-  event.stopPropagation();
-  pendingAction={name,folder};
-  startRename(name,folder);
-};
-window.startRename=(name,folder)=>{
-  pendingAction={name,folder}; $('renameName').value=name; openModal('renameModal'); setTimeout(()=>$('renameName').focus(),50);
-};
-
-async function renameItem(){
-  const next=cleanName($('renameName').value); const old=pendingAction?.name; const folder=pendingAction?.folder;
-  if(!old||!next)return toast('Enter a valid name.');
-  if(old===next){closeModal('renameModal');return;}
-  if(folder){
-    const oldPrefix=pathJoin(user.id,pathJoin(currentPath,old));
-    const newPrefix=pathJoin(user.id,pathJoin(currentPath,next));
-    const {data,error}=await sb.storage.from(BUCKET).list(oldPrefix,{limit:1000});
-    if(error)return toast(`Rename failed: ${error.message}`);
-    const objects=(data||[]).filter(x=>x.id!==null).map(x=>({from:pathJoin(oldPrefix,x.name),to:pathJoin(newPrefix,x.name)}));
-    for(const o of objects){ const r=await sb.storage.from(BUCKET).move(o.from,o.to); if(r.error)return toast(`Rename failed: ${r.error.message}`); }
-    if(!objects.length){
-      const r=await sb.storage.from(BUCKET).upload(pathJoin(newPrefix,'.folder'),new Blob(['IzVault folder'],{type:'text/plain'}),{upsert:false});
-      if(r.error)return toast(`Rename failed: ${r.error.message}`);
-    }
-  }else{
-    const from=pathJoin(user.id,pathJoin(currentPath,old)); const to=pathJoin(user.id,pathJoin(currentPath,next));
-    const {error}=await sb.storage.from(BUCKET).move(from,to); if(error)return toast(`Rename failed: ${error.message}`);
-  }
-  closeModal('renameModal'); toast('Renamed successfully.'); await load();
-}
-
-window.startDelete=(name,folder)=>{
-  pendingAction={name,folder}; $('deleteText').textContent=`Delete “${name}”? This cannot be undone.`; openModal('deleteModal');
-};
-
-async function deleteItem(){
-  const {name,folder}=pendingAction||{}; if(!name)return;
-  const prefix=pathJoin(user.id,pathJoin(currentPath,name));
-  if(folder){
-    const {data,error}=await sb.storage.from(BUCKET).list(prefix,{limit:1000});
-    if(error)return toast(`Delete failed: ${error.message}`);
-    const paths=(data||[]).filter(x=>x.id!==null).map(x=>pathJoin(prefix,x.name));
-    if(paths.length){const r=await sb.storage.from(BUCKET).remove(paths);if(r.error)return toast(`Delete failed: ${r.error.message}`);}
-  }else{
-    const {error}=await sb.storage.from(BUCKET).remove([prefix]); if(error)return toast(`Delete failed: ${error.message}`);
-  }
-  closeModal('deleteModal'); toast('Deleted.'); await load();
-}
-
-// Make delete available from inline controls through a simple context action.
-window.startRename=startRename;
-window.openItemMenu=(event,name,folder)=>{
-  event.stopPropagation();
-  const action=confirm(`Rename “${name}”?\n\nPress OK to rename, or Cancel to delete.`);
-  if(action) startRename(name,folder); else window.startDelete(name,folder);
-};
-
+const SUPABASE_URL='https://imkbmemvoqbbedbljueu.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE';
+const {createClient}=window.supabase; const sb=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY); const BUCKET='resources';
+let user=null,currentPath='',pendingAction=null,allItems=[];
+const $=id=>document.getElementById(id); const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const cleanName=v=>String(v||'').trim().replace(/[\\/]/g,'-').replace(/\.{2,}/g,'.').slice(0,160); const join=(a,b)=>[a,b].filter(Boolean).join('/');
+const storagePath=()=>join(user.id,currentPath); const toast=m=>{ $('toast').textContent=m; $('toast').classList.remove('hidden'); clearTimeout(window.__toast); window.__toast=setTimeout(()=>$('toast').classList.add('hidden'),3000); };
+const openModal=id=>$(id).classList.add('show'); const closeModal=id=>$(id).classList.remove('show');
+function bytes(n){if(!n)return'0 B';const u=['B','KB','MB','GB','TB'],i=Math.min(Math.floor(Math.log(n)/Math.log(1024)),4);return`${(n/1024**i).toFixed(i?1:0)} ${u[i]}`}
+function ext(n){return n.split('.').pop().toLowerCase()}
+function isImage(n){return['jpg','jpeg','png','gif','webp','svg'].includes(ext(n))} function isPdf(n){return ext(n)==='pdf'}
+function icon(n,f=false){if(f)return'fa-folder';if(isImage(n))return'fa-image';if(isPdf(n))return'fa-file-pdf';if(['doc','docx','txt','rtf'].includes(ext(n)))return'fa-file-lines';if(['ppt','pptx'].includes(ext(n)))return'fa-file-powerpoint';if(['xls','xlsx','csv'].includes(ext(n)))return'fa-file-excel';if(['zip','rar','7z'].includes(ext(n)))return'fa-file-zipper';if(['psd','ai','fig'].includes(ext(n)))return'fa-palette';if(['mp4','mov','webm','mkv'].includes(ext(n)))return'fa-file-video';return'fa-file'}
+async function init(){const {data:{session}}=await sb.auth.getSession();user=session?.user||null;if(!user){toast('Please log in to access cloud Resources.');setTimeout(()=>location.href='index.html',900);return}$('accountName').textContent=user.user_metadata?.username||user.email?.split('@')[0]||'User';bind();await load()}
+function bind(){$('uploadBtn').onclick=()=>$('fileInput').click();$('fileInput').onchange=async e=>{if(e.target.files.length)await uploadFiles([...e.target.files]);e.target.value=''};$('newFolderBtn').onclick=()=>{$('folderName').value='';openModal('folderModal');setTimeout(()=>$('folderName').focus(),50)};$('createFolder').onclick=createFolder;$('refreshBtn').onclick=load;$('search').oninput=render;document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));$('renameSave').onclick=renameItem;$('deleteConfirm').onclick=deleteItem}
+async function listObjects(prefix=''){const {data,error}=await sb.storage.from(BUCKET).list(prefix,{limit:1000,sortBy:{column:'name',order:'asc'}});if(error)throw error;return data||[]}
+async function load(){try{allItems=await listObjects(storagePath());render()}catch(e){console.error(e);toast(`Could not load Resources: ${e.message||'Storage is not configured.'}`);$('grid').innerHTML='<div class="empty"><i class="fa-solid fa-cloud"></i><br><br>Cloud storage is not ready yet.<br>Run resources-storage.sql in Supabase SQL Editor.</div>'}}
+function render(){const q=$('search').value.trim().toLowerCase();const items=allItems.filter(x=>x.name!=='.folder'&&(!q||x.name.toLowerCase().includes(q)));const folders=items.filter(x=>x.id===null||x.metadata===null);const files=items.filter(x=>x.id!==null&&x.metadata!==null);$('fileCount').textContent=files.length;$('folderCount').textContent=folders.length;$('currentFolder').textContent=currentPath?currentPath.split('/').pop():'Root';renderPath();if(!items.length){$('grid').innerHTML='<div class="empty"><i class="fa-solid fa-folder-open" style="font-size:30px"></i><br><br>No files or folders here yet.<br>Upload a file or create a folder to get started.</div>';return}$('grid').innerHTML=[...folders,...files].map(x=>{const f=folders.includes(x),n=x.name,m=f?'Folder':'File • '+bytes(x.metadata?.size||0);return`<article class="item"><div><div class="itemtop"><div class="icon"><i class="fa-solid ${icon(n,f)}"></i></div><button class="mini" style="flex:0 0 auto" onclick='openMenu(event,${JSON.stringify(n)},${f})'>•••</button></div><div class="name">${esc(n)}</div><div class="meta">${m}</div></div><div class="itemactions">${f?`<button class="mini" onclick='openFolder(${JSON.stringify(n)})'>Open</button>`:((isImage(n)||isPdf(n))?`<button class="mini" onclick='previewFile(${JSON.stringify(n)})'>View</button>`:`<button class="mini" onclick='downloadFile(${JSON.stringify(n)})'>Download</button>`)}<button class="mini" onclick='startRename(${JSON.stringify(n)},${f})'>Rename</button><button class="mini danger" onclick='startDelete(${JSON.stringify(n)},${f})'>Delete</button></div></article>`}).join('')}
+function renderPath(){const parts=currentPath?currentPath.split('/'):[];let h='<button onclick="goRoot()"><i class="fa-solid fa-house"></i> Root</button>',b='';parts.forEach(p=>{b=join(b,p);h+=`<span>/</span><button onclick='goPath(${JSON.stringify(b)})'>${esc(p)}</button>`});$('path').innerHTML=h}
+window.goRoot=()=>{currentPath='';load()};window.goPath=p=>{currentPath=p;load()};window.openFolder=n=>{currentPath=join(currentPath,n);load()};
+async function uploadFiles(files){let ok=0;for(const file of files){const n=cleanName(file.name);if(!n)continue;const p=join(storagePath(),n);const {error}=await sb.storage.from(BUCKET).upload(p,file,{upsert:false,contentType:file.type||'application/octet-stream'});if(error)toast(`${n}: ${error.message}`);else ok++}if(ok)toast(`${ok} file${ok>1?'s':''} uploaded to the cloud.`);await load()}
+async function createFolder(){const n=cleanName($('folderName').value);if(!n)return toast('Enter a folder name.');const p=join(storagePath(),join(n,'.folder'));const {error}=await sb.storage.from(BUCKET).upload(p,new Blob(['IzVault folder'],{type:'text/plain'}),{upsert:false,contentType:'text/plain'});if(error)return toast(`Could not create folder: ${error.message}`);closeModal('folderModal');toast('Folder created.');await load()}
+async function signed(name){const {data,error}=await sb.storage.from(BUCKET).createSignedUrl(join(storagePath(),name),300);if(error)throw error;return data.signedUrl}
+async function downloadFile(name){try{const u=await signed(name);const a=document.createElement('a');a.href=u;a.download=name;a.target='_blank';a.rel='noopener';a.click()}catch(e){toast(`Download failed: ${e.message}`)}}window.downloadFile=downloadFile;
+async function previewFile(name){try{const u=await signed(name);let box=document.getElementById('previewModal');if(!box){box=document.createElement('div');box.id='previewModal';box.className='modal';box.innerHTML='<div class="sheet preview-sheet"><button class="btn" id="previewClose">Close</button><div id="previewBody"></div></div>';document.body.appendChild(box);$('previewClose').onclick=()=>closeModal('previewModal')}$('previewBody').innerHTML=isImage(name)?`<img src="${u}" alt="${esc(name)}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:12px"><p>${esc(name)}</p>`:`<iframe src="${u}" title="${esc(name)}" style="width:100%;height:70vh;border:0;border-radius:12px"></iframe>`;openModal('previewModal')}catch(e){toast(`Preview failed: ${e.message}`)}}window.previewFile=previewFile;
+window.startRename=(name,folder)=>{pendingAction={name,folder};$('renameName').value=name;openModal('renameModal');setTimeout(()=>$('renameName').focus(),50)};
+async function renameItem(){const old=pendingAction?.name,next=cleanName($('renameName').value),folder=pendingAction?.folder;if(!old||!next)return toast('Enter a valid name.');if(old===next){closeModal('renameModal');return}const base=storagePath(),from=join(base,old),to=join(base,next);try{if(folder){const r=await moveTree(from,to);if(r)throw r}else{const {error}=await sb.storage.from(BUCKET).move(from,to);if(error)throw error}closeModal('renameModal');toast('Renamed successfully.');await load()}catch(e){toast(`Rename failed: ${e.message}`)}}
+async function moveTree(from,to){const {data,error}=await sb.storage.from(BUCKET).list(from,{limit:1000});if(error)return error;const children=(data||[]).filter(x=>x.name!=='.folder');for(const x of children){const a=join(from,x.name),b=join(to,x.name);const r=await sb.storage.from(BUCKET).move(a,b);if(r.error)return r.error}const marker=join(to,'.folder');const markerExists=(data||[]).some(x=>x.name==='.folder');if(markerExists){const r=await sb.storage.from(BUCKET).move(join(from,'.folder'),marker);if(r.error)return r.error}else{const r=await sb.storage.from(BUCKET).upload(marker,new Blob(['IzVault folder'],{type:'text/plain'}),{upsert:false});if(r.error)return r.error}return null}
+window.startDelete=(name,folder)=>{pendingAction={name,folder};$('deleteText').textContent=`Delete “${name}”? This will permanently remove the ${folder?'folder and its files':'file'}.`;openModal('deleteModal')};
+async function collectFiles(prefix){const {data,error}=await sb.storage.from(BUCKET).list(prefix,{limit:1000});if(error)throw error;let paths=[];for(const x of data||[]){const p=join(prefix,x.name);if(x.id===null||x.metadata===null)paths.push(...await collectFiles(p));else paths.push(p)}return paths}
+async function deleteItem(){const {name,folder}=pendingAction||{};if(!name)return;const p=join(storagePath(),name);try{const paths=folder?await collectFiles(p):[p];if(paths.length){const {error}=await sb.storage.from(BUCKET).remove(paths);if(error)throw error}closeModal('deleteModal');toast('Deleted successfully.');await load()}catch(e){toast(`Delete failed: ${e.message}`)}}
+window.openMenu=(event,name,folder)=>{event.stopPropagation();const action=confirm(`Choose an action for “${name}”.\n\nOK = Rename\nCancel = Delete`);if(action)startRename(name,folder);else startDelete(name,folder)};
 init();
