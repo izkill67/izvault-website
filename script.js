@@ -1,121 +1,18 @@
-/* =====================================
-   IZVAULT V2
-   script.js
-===================================== */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-const observer = new IntersectionObserver((entries)=>{
-
-entries.forEach(entry=>{
-
-if(entry.isIntersecting){
-
-entry.target.classList.add("visible");
-
-}
-
-});
-
-},{
-threshold:0.15
-});
-
-document.querySelectorAll(".hero,.card,.about,.contact").forEach(el=>{
-
-el.classList.add("hidden");
-
-observer.observe(el);
-
-});
-
-/* Navbar */
-
-const header=document.querySelector("header");
-
-window.addEventListener("scroll",()=>{
-
-if(window.scrollY>30){
-
-header.classList.add("scrolled");
-
-}else{
-
-header.classList.remove("scrolled");
-
-}
-
-});
-
-/* Buttons */
-
-document.querySelectorAll(".primary,.secondary,.socials a").forEach(btn=>{
-
-btn.addEventListener("mouseenter",()=>{
-
-btn.style.transform="translateY(-4px)";
-
-});
-
-btn.addEventListener("mouseleave",()=>{
-
-btn.style.transform="translateY(0px)";
-
-});
-
-});
-
-/* Card Glow */
-
-document.querySelectorAll(".card").forEach(card=>{
-
-card.addEventListener("mousemove",(e)=>{
-
-const rect=card.getBoundingClientRect();
-
-const x=e.clientX-rect.left;
-const y=e.clientY-rect.top;
-
-card.style.background=
-
-`radial-gradient(circle at ${x}px ${y}px,
-rgba(201,162,39,.12),
-#121212 60%)`;
-
-});
-
-card.addEventListener("mouseleave",()=>{
-
-card.style.background="#121212";
-
-});
-
-});
-
-/* Smooth Anchor */
-
-document.querySelectorAll('a[href^="#"]').forEach(anchor=>{
-
-anchor.addEventListener("click",(e)=>{
-
-const target=document.querySelector(anchor.getAttribute("href"));
-
-if(target){
-
-e.preventDefault();
-
-target.scrollIntoView({
-
-behavior:"smooth"
-
-});
-
-}
-
-});
-
-});
-
-console.log("IZVAULT V2 Loaded");
-
+document.addEventListener('DOMContentLoaded',()=>{
+ const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)entry.target.classList.add('visible')}),{threshold:.12});
+ document.querySelectorAll('.hero-copy,.hero-visual,.stats-strip,.panel,.feature-card,.project-card,.trust-section,.about-section,.cta-section').forEach(el=>{el.classList.add('hidden');observer.observe(el)});
+ const header=document.querySelector('header');
+ window.addEventListener('scroll',()=>header?.classList.toggle('scrolled',window.scrollY>30),{passive:true});
+ const mobile=document.getElementById('mobileMenu');
+ const menu=document.getElementById('menu');
+ mobile?.addEventListener('click',()=>{menu?.classList.toggle('open');mobile.innerHTML=menu?.classList.contains('open')?'<i class="fa-solid fa-xmark"></i>':'<i class="fa-solid fa-bars"></i>'});
+ document.querySelectorAll('#menu a').forEach(a=>a.addEventListener('click',()=>menu?.classList.remove('open')));
+ const sections=[...document.querySelectorAll('main section[id]')];
+ const links=[...document.querySelectorAll('#menu a')];
+ const sectionObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){links.forEach(l=>l.classList.remove('active'));const active=links.find(l=>l.getAttribute('href')==='#'+entry.target.id);active?.classList.add('active')}}),{rootMargin:'-35% 0px -55% 0px'});
+ sections.forEach(s=>sectionObserver.observe(s));
+ document.getElementById('themeToggle')?.addEventListener('click',()=>document.body.classList.toggle('light-preview'));
+ document.getElementById('ctaSignIn')?.addEventListener('click',()=>document.getElementById('authOpen')?.click());
+ document.querySelectorAll('.feature-card,.project-card,.panel,.stat').forEach(card=>card.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();card.style.setProperty('--mx',`${e.clientX-r.left}px`);card.style.setProperty('--my',`${e.clientY-r.top}px`)}));
+ console.log('IZVAULT landing page loaded');
 });
