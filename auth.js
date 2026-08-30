@@ -19,7 +19,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 
 function showMessage(message, isError = false) {
   authMessage.textContent = message;
-  authMessage.style.color = isError ? '#fb7185' : '#C9A227';
+  authMessage.style.color = isError ? '#fb7185' : '#9d7cff';
 }
 
 function openAuth(mode = 'login') {
@@ -29,7 +29,7 @@ function openAuth(mode = 'login') {
   const isRegister = mode === 'register';
 
   authTitle.textContent = isAccount ? 'Your Account' : isRegister ? 'Create Account' : 'Welcome Back';
-  authSubtitle.textContent = isAccount ? 'Manage your IzVault account.' : isRegister ? 'Create one account for IzVault.' : 'Sign in to continue to IzVault.';
+  authSubtitle.textContent = isAccount ? 'Manage your IZVAULT account.' : isRegister ? 'Create your IZVAULT account.' : 'Sign in to continue to IZVAULT.';
   authLoginForm.hidden = isRegister || isAccount;
   authRegisterForm.hidden = !isRegister || isAccount;
   authAccount.hidden = !isAccount;
@@ -60,29 +60,34 @@ authRegisterForm?.addEventListener('submit', async (event) => {
   const password = document.getElementById('registerPassword').value;
   const submit = authRegisterForm.querySelector('button[type="submit"]');
 
-  if (username.length < 3) return showMessage('Username mesti sekurang-kurangnya 3 aksara.', true);
-  if (password.length < 6) return showMessage('Password mesti sekurang-kurangnya 6 aksara.', true);
+  if (username.length < 3) return showMessage('Username must be at least 3 characters.', true);
+  if (password.length < 6) return showMessage('Password must be at least 6 characters.', true);
 
   submit.disabled = true;
   showMessage('Creating account...');
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { username },
-      emailRedirectTo: window.location.origin + window.location.pathname
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+        emailRedirectTo: window.location.origin + window.location.pathname
+      }
+    });
+
+    if (error) throw error;
+
+    if (data.session) {
+      showMessage('Account created successfully. Welcome to IZVAULT!');
+      setTimeout(closeAuth, 900);
+    } else {
+      showMessage('Account created. Check your email to verify your account before signing in.');
     }
-  });
-
-  submit.disabled = false;
-  if (error) return showMessage(error.message, true);
-
-  if (data.session) {
-    showMessage('Account berjaya dibuat. Selamat datang ke IzVault!');
-    setTimeout(closeAuth, 900);
-  } else {
-    showMessage('Account dibuat. Semak email untuk pengesahan sebelum login.');
+  } catch (error) {
+    showMessage(error.message || 'Could not create your account.', true);
+  } finally {
+    submit.disabled = false;
   }
 });
 
@@ -95,30 +100,33 @@ authLoginForm?.addEventListener('submit', async (event) => {
   submit.disabled = true;
   showMessage('Signing in...');
 
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-  submit.disabled = false;
-  if (error) return showMessage(error.message, true);
-
-  showMessage('Login berjaya.');
-  setTimeout(closeAuth, 500);
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    showMessage('Signed in successfully.');
+    setTimeout(closeAuth, 500);
+  } catch (error) {
+    showMessage(error.message || 'Could not sign in.', true);
+  } finally {
+    submit.disabled = false;
+  }
 });
 
 logoutBtn?.addEventListener('click', async () => {
   const { error } = await supabaseClient.auth.signOut();
-  if (error) return showMessage(error.message, true);
+  if (error) return showMessage(error.message || 'Could not sign out.', true);
   closeAuth();
 });
 
 async function updateAuthUI(user) {
   if (!authOpen) return;
   if (user) {
-    authOpen.textContent = 'Account';
+    authOpen.innerHTML = '<i class="fa-regular fa-user"></i> Account';
     authOpen.dataset.loggedIn = 'true';
-    const username = user.user_metadata?.username || 'IzVault User';
+    const username = user.user_metadata?.username || 'IZVAULT User';
     authAccount.innerHTML = `<p>Username: <strong>${escapeHtml(username)}</strong></p><p>Email: <strong>${escapeHtml(user.email || '')}</strong></p><p>Plan: <strong>Free</strong></p>`;
   } else {
-    authOpen.textContent = 'Login';
+    authOpen.innerHTML = '<i class="fa-regular fa-user"></i> Sign In';
     authOpen.dataset.loggedIn = 'false';
   }
 }
