@@ -1,0 +1,31 @@
+name: Polish Resources UI
+on:
+  push:
+    branches: [feature/resources-wave-polish]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply subtle wave background
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('resources.html')
+          s = p.read_text(encoding='utf-8')
+          css = r'''\n/* ReadVault-inspired IZVAULT Resources visual polish — background only */\nbody{position:relative;overflow-x:hidden;background:radial-gradient(circle at 12% 18%,rgba(143,92,255,.10),transparent 25%),radial-gradient(circle at 88% 40%,rgba(36,199,217,.08),transparent 28%),var(--bg)}\n.res-ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}\n.res-ambient .wave{position:absolute;width:1050px;height:260px;border:1px solid rgba(155,108,255,.10);border-radius:50%;filter:blur(.2px);transform:rotate(-10deg);animation:resFlow 22s ease-in-out infinite alternate}\n.res-ambient .wave:nth-child(1){left:-330px;top:110px}\n.res-ambient .wave:nth-child(2){left:-180px;top:160px;width:1200px;border-color:rgba(53,207,224,.08);animation-duration:27s;animation-delay:-6s}\n.res-ambient .wave:nth-child(3){right:-420px;top:360px;width:1150px;border-color:rgba(155,108,255,.07);animation-duration:25s;animation-delay:-11s}\n.res-ambient .wave:nth-child(4){right:-250px;top:440px;width:950px;border-color:rgba(53,207,224,.06);animation-duration:21s;animation-delay:-4s}\n.res-ambient .particle{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--cyan);box-shadow:0 0 18px var(--cyan);opacity:.28;animation:resFloat 8s ease-in-out infinite}\n.res-ambient .particle:nth-child(5){left:18%;top:22%;animation-delay:-2s}\n.res-ambient .particle:nth-child(6){left:76%;top:16%;animation-delay:-5s}\n.res-ambient .particle:nth-child(7){left:87%;top:70%;animation-delay:-7s}\n.res-ambient .particle:nth-child(8){left:34%;top:68%;animation-delay:-4s}\n@keyframes resFlow{from{transform:translate3d(-2%,0,0) rotate(-10deg)}to{transform:translate3d(7%,18px,0) rotate(-6deg)}}\n@keyframes resFloat{50%{transform:translateY(-16px) translateX(9px);opacity:.55}}\n.top,main{position:relative;z-index:1}\n.item,.stat,.storage,.dropzone,.search input,.select,.btn{backdrop-filter:blur(10px)}\n.item{background:rgba(20,21,35,.84)}\n.stat,.storage,.dropzone,.search input,.select,.btn{background:rgba(20,21,35,.78)}\n.item:hover{border-color:rgba(155,108,255,.48);box-shadow:0 14px 30px rgba(0,0,0,.18),0 0 25px rgba(155,108,255,.08)}\n.path button:hover{color:var(--cyan)}\n@media(prefers-reduced-motion:reduce){.res-ambient .wave,.res-ambient .particle{animation:none}}\n'''
+          if 'res-ambient' not in s:
+              s = s.replace('</style>', css + '\n</style>', 1)
+              s = s.replace('<body>', '<body>\n<div class="res-ambient" aria-hidden="true"><i class="wave"></i><i class="wave"></i><i class="wave"></i><i class="wave"></i><i class="particle"></i><i class="particle"></i><i class="particle"></i><i class="particle"></i></div>', 1)
+              p.write_text(s, encoding='utf-8')
+      - name: Commit and remove helper workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add resources.html
+          git rm -f .github/workflows/polish-resources.yml
+          git commit -m "Polish Resources with subtle wave background"
+          git push
