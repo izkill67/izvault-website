@@ -1,43 +1,22 @@
-/* IZVAULT AUTH */
+/* IZVAULT AUTH — premium login/register UI */
 .auth-area{display:flex;align-items:center;gap:10px;margin-left:10px}
-.auth-btn{border:1px solid rgba(201,162,39,.55);background:transparent;color:#C9A227;padding:9px 16px;border-radius:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;transition:.25s}
-.auth-btn:hover{background:#C9A227;color:#090909;transform:translateY(-2px)}
-.auth-btn.account{background:#121212}
-.auth-btn.account:hover{color:#090909}
+.auth-btn{border:0;background:linear-gradient(135deg,#8f5cff,#25c9df);color:#fff;padding:10px 17px;border-radius:13px;font:700 14px 'Inter',sans-serif;cursor:pointer;transition:.25s;box-shadow:0 8px 24px rgba(120,80,255,.2)}
+.auth-btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(120,80,255,.28)}
+.auth-btn.account{background:rgba(20,20,31,.9);border:1px solid rgba(155,108,255,.35)}
 .auth-modal[hidden]{display:none}
-.auth-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(12px)}
-.auth-card{width:min(420px,100%);background:#111;border:1px solid rgba(201,162,39,.28);border-radius:24px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.auth-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
-.auth-title{font:700 28px 'Space Grotesk',sans-serif}
-.auth-subtitle{color:#8e8e8e;font-size:14px;margin-top:5px}
-.auth-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#181818;color:#aaa;cursor:pointer;font-size:18px}
-.auth-form{display:flex;flex-direction:column;gap:13px}
-.auth-form label{font-size:13px;color:#aaa;margin-bottom:-7px}
-.auth-form input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#181818;color:#fff;outline:none;font:14px 'Inter',sans-serif}
-.auth-form input:focus{border-color:#C9A227;box-shadow:0 0 0 3px rgba(201,162,39,.1)}
-.auth-submit{margin-top:4px;width:100%;padding:13px;border:0;border-radius:12px;background:#C9A227;color:#090909;font:700 14px 'Inter',sans-serif;cursor:pointer;transition:.25s}
-.auth-submit:hover{transform:translateY(-2px);box-shadow:0 12px 25px rgba(201,162,39,.2)}
-.auth-switch{text-align:center;color:#888;font-size:13px;margin-top:16px}
-.auth-switch button{background:none;border:0;color:#C9A227;cursor:pointer;font:600 13px 'Inter',sans-serif}
-.auth-message{min-height:20px;color:#C9A227;font-size:13px;margin-top:4px}
-.auth-account{color:#aaa;font-size:14px;line-height:1.7}
-.auth-account strong{color:#fff}
-.auth-logout{margin-top:20px;width:100%;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#181818;color:#fff;cursor:pointer;font-weight:600}
-@media(max-width:768px){.auth-area{margin-left:0}.auth-btn{padding:8px 12px}}
-
-/* Premium auth refresh: brighter, cleaner, more consistent with IZVAULT */
-.auth-modal{background:radial-gradient(circle at 18% 12%,rgba(143,92,255,.16),transparent 34%),radial-gradient(circle at 84% 84%,rgba(36,199,217,.12),transparent 32%),rgba(3,4,10,.72);backdrop-filter:blur(18px);animation:authFade .25s ease both}
-.auth-card{position:relative;width:min(500px,100%);max-height:92vh;overflow:auto;padding:38px 36px 30px;border-radius:30px;background:linear-gradient(145deg,rgba(24,25,43,.985),rgba(10,12,24,.985));border:1px solid rgba(155,108,255,.34);box-shadow:0 38px 100px rgba(0,0,0,.62),0 0 90px rgba(118,77,255,.12);isolation:isolate;animation:authCardIn .36s cubic-bezier(.2,.8,.2,1) both}
-.auth-card:before,.auth-card:after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(2px)}
-.auth-card:before{width:270px;height:270px;left:-170px;top:-150px;background:radial-gradient(circle,rgba(143,92,255,.32),transparent 68%)}
-.auth-card:after{width:270px;height:270px;right:-170px;bottom:-150px;background:radial-gradient(circle,rgba(36,199,217,.24),transparent 68%)}
-.auth-head{display:block;text-align:center;margin-bottom:26px;padding-top:7px}
-.auth-head:before{content:'IZ';display:grid;place-items:center;width:62px;height:62px;margin:0 auto 14px;border-radius:19px;background:linear-gradient(135deg,#8f5cff,#5e72ff 52%,#24c7d9);color:#fff;font:800 23px 'Space Grotesk',sans-serif;letter-spacing:-1px;box-shadow:0 14px 38px rgba(111,80,255,.3)}
-.auth-title{font-size:31px;letter-spacing:-.03em;color:#f8f8ff}.auth-subtitle{color:#aeb2c8;font-size:14px}
-.auth-close{position:absolute;right:16px;top:16px;width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.045);transition:.2s}.auth-close:hover{background:rgba(155,108,255,.13);border-color:rgba(155,108,255,.4);color:#fff;transform:rotate(4deg)}
-.auth-form{gap:10px}.auth-form label{font-size:12px;color:#d0d2df;margin-top:3px}.auth-form input{padding:15px 16px;border-radius:14px;background:rgba(10,12,22,.72);border-color:rgba(255,255,255,.1);font-size:14px;transition:.2s}.auth-form input::placeholder{color:#666a7d}.auth-form input:hover{border-color:rgba(155,108,255,.25)}.auth-form input:focus{border-color:#9b6cff;box-shadow:0 0 0 3px rgba(155,108,255,.11),0 0 32px rgba(155,108,255,.09)}
-.auth-submit{padding:15px;border-radius:14px;margin-top:10px;background:linear-gradient(105deg,#8250ff,#4d7dff 52%,#21c4d8);color:#fff;box-shadow:0 14px 34px rgba(101,72,238,.24);font-size:14px}.auth-submit:hover{background:linear-gradient(105deg,#8d5aff,#5a83ff 52%,#2acfe2);transform:translateY(-2px) scale(1.005);box-shadow:0 18px 40px rgba(101,72,238,.32)}
-.auth-switch{margin-top:19px;color:#8f93a8}.auth-switch button{color:#b99aff}.auth-message{margin-top:12px;min-height:20px;font-size:12px}.auth-account{margin-top:8px}.auth-account .account-panel{background:linear-gradient(135deg,rgba(30,31,52,.78),rgba(17,20,35,.78));border:1px solid rgba(155,108,255,.24);border-radius:16px;padding:16px}.auth-logout{background:rgba(255,255,255,.035);transition:.2s}.auth-logout:hover{border-color:rgba(255,113,135,.4);background:rgba(255,70,100,.08);color:#ff8296}
-@keyframes authFade{from{opacity:0}to{opacity:1}}@keyframes authCardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(max-width:560px){.auth-modal{padding:8px;align-items:flex-end}.auth-card{width:100%;padding:30px 20px 24px;border-radius:26px 26px 18px 18px;max-height:94vh}.auth-title{font-size:28px}.auth-head:before{width:58px;height:58px}.auth-form input{padding:14px}.auth-submit{padding:14px}}
-@media(prefers-reduced-motion:reduce){.auth-modal,.auth-card{animation:none}.auth-close{transition:none}.auth-submit{transition:none}}
+.auth-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,5,12,.78);backdrop-filter:blur(18px)}
+.auth-card{position:relative;width:min(470px,100%);max-height:92vh;overflow:auto;background:linear-gradient(145deg,rgba(16,17,31,.98),rgba(9,11,22,.98));border:1px solid rgba(155,108,255,.28);border-radius:28px;padding:34px;box-shadow:0 35px 100px rgba(0,0,0,.65),0 0 70px rgba(115,80,255,.09);isolation:isolate}
+.auth-card:before,.auth-card:after{content:"";position:absolute;pointer-events:none;z-index:-1;border-radius:50%;filter:blur(2px);opacity:.28}.auth-card:before{width:220px;height:220px;left:-120px;top:-110px;background:radial-gradient(circle,#8d5cff,transparent 68%)}.auth-card:after{width:220px;height:220px;right:-130px;bottom:-120px;background:radial-gradient(circle,#23c8df,transparent 68%)}
+.auth-head{display:block;text-align:center;margin-bottom:24px;padding-top:8px}.auth-head:before{content:"IZ";display:grid;place-items:center;margin:0 auto 12px;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#8d5cff,#24c7d9);color:#fff;font:800 23px 'Space Grotesk',sans-serif;box-shadow:0 12px 35px rgba(116,78,255,.28)}
+.auth-title{font:700 30px 'Space Grotesk',sans-serif;letter-spacing:-.02em}.auth-subtitle{color:#9c9db1;font-size:14px;margin-top:6px}.auth-close{position:absolute;right:18px;top:18px;width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#171925;color:#aaa;cursor:pointer;font-size:19px}.auth-close:hover{color:#fff;border-color:rgba(155,108,255,.4)}
+.auth-form{display:flex;flex-direction:column;gap:9px}.auth-form label{font-size:12px;color:#c3c4d0;font-weight:600;margin:2px 0 1px}.auth-field{position:relative}.auth-form input{width:100%;padding:14px 44px 14px 14px;border-radius:13px;border:1px solid rgba(255,255,255,.09);background:#141620;color:#fff;outline:none;font:14px 'Inter',sans-serif;transition:.2s}.auth-form input:focus{border-color:#9b6cff;box-shadow:0 0 0 3px rgba(155,108,255,.11),0 0 24px rgba(155,108,255,.07)}
+.auth-submit{margin-top:8px;width:100%;padding:14px;border:0;border-radius:13px;background:linear-gradient(135deg,#9558ff,#2ac9df);color:#fff;font:700 14px 'Inter',sans-serif;cursor:pointer;transition:.25s;box-shadow:0 12px 28px rgba(100,75,230,.2)}.auth-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 16px 32px rgba(100,75,230,.3)}.auth-submit:disabled{opacity:.65;cursor:wait}
+.auth-options{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:3px;font-size:12px;color:#9b9cad}.auth-check{display:flex;align-items:center;gap:7px}.auth-check input{accent-color:#9b6cff}.auth-link{background:none;border:0;color:#ad8cff;cursor:pointer;padding:0;font:600 12px 'Inter',sans-serif}.auth-link:hover{text-decoration:underline}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:19px 0 4px;color:#737589;font-size:11px}.auth-divider:before,.auth-divider:after{content:"";height:1px;flex:1;background:rgba(255,255,255,.08)}
+.auth-switch{text-align:center;color:#858797;font-size:13px;margin-top:16px}.auth-switch button{background:none;border:0;color:#b08cff;cursor:pointer;font:700 13px 'Inter',sans-serif}.auth-switch button:hover{text-decoration:underline}
+.auth-message{min-height:22px;color:#a98cff;font-size:12px;margin-top:11px;padding:0 2px}.auth-message.error{color:#ff7187}.auth-message.success{color:#51d59b}.auth-message.loading{color:#b8b9c9}
+.auth-account{color:#aaa;font-size:14px;line-height:1.7;margin-top:5px}.auth-account .account-panel{padding:16px;border:1px solid rgba(155,108,255,.2);background:rgba(20,21,34,.7);border-radius:16px}.auth-account .account-avatar{width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#8f5cff,#24c7d9);display:grid;place-items:center;color:#fff;font-weight:800;margin-bottom:10px}.auth-account strong{color:#fff}.auth-account p{margin:4px 0}.auth-account .account-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.auth-account .account-action{border:1px solid rgba(255,255,255,.09);background:#171925;color:#ddd;border-radius:11px;padding:10px;cursor:pointer;font-size:12px}.auth-account .account-action:hover{border-color:#9b6cff;color:#fff}
+.auth-logout{margin-top:12px;width:100%;padding:12px;border:1px solid rgba(255,113,135,.2);border-radius:12px;background:rgba(255,70,100,.06);color:#ff8296;cursor:pointer;font-weight:700}.auth-logout:hover{background:rgba(255,70,100,.1)}
+.auth-password-toggle{position:absolute;right:9px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#77798b;padding:6px;cursor:pointer}.auth-password-toggle:hover{color:#c6c6d4}.auth-strength{height:4px;background:#202232;border-radius:99px;overflow:hidden;margin:2px 0 0}.auth-strength i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7187,#ffc94a,#51d59b);transition:.25s}.auth-strength-text{font-size:10px;color:#858797;margin-top:2px}.auth-terms{font-size:11px;color:#7f8193;line-height:1.5;margin-top:2px}.auth-terms a{color:#ae8cff}
+@media(max-width:560px){.auth-modal{padding:10px;align-items:flex-end}.auth-card{padding:27px 20px 22px;border-radius:25px 25px 18px 18px;max-height:94vh}.auth-title{font-size:26px}.auth-head:before{width:52px;height:52px}.auth-options{font-size:11px}.auth-account .account-actions{grid-template-columns:1fr}.auth-btn{padding:9px 12px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){.auth-btn,.auth-submit{transition:none}}
