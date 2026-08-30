@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   patch:
-    if: ${{ !contains(github.event.head_commit.message, '[readvault-import-fix]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -23,7 +22,6 @@ jobs:
 
           path = Path('reading-tracker-v3.html')
           text = path.read_text(encoding='utf-8')
-
           pattern = re.compile(r"async function importList\(list\)\{.*?async function importOld\(\)\{.*?\}\n", re.S)
           replacement = r'''async function importList(list){
             const normalized=[];
@@ -39,7 +37,6 @@ jobs:
               normalized.push({user_id:user.id,title,author:x?.author??x?.writer??null,genre:Array.isArray(genreValue)?genreValue.join(', '):(genreValue||null),type:x?.type??x?.format??'Novel',status:x?.status??'Reading',current_chapter:Number(currentValue)||0,total_chapter:Number(totalValue)||0,link,rating:Number(x?.rating)||0,notes:x?.notes??x?.review??null,cover_url:cover,source_url:source});
             }
             if(!normalized.length)return 0;
-
             const existing=await sb.from('books').select('title,link,source_url').eq('user_id',user.id);
             if(existing.error)throw existing.error;
             const seen=new Set((existing.data||[]).map(b=>`${String(b.title||'').trim().toLowerCase()}|${String(b.link||b.source_url||'').trim()}`));
@@ -85,7 +82,6 @@ jobs:
             }
           }
 '''
-
           patched, count = pattern.subn(replacement, text, count=1)
           if count != 1:
               raise SystemExit('Could not locate the existing importer block.')
@@ -97,6 +93,6 @@ jobs:
           rm -f .github/workflows/fix-readvault-import.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reading-tracker-v3.html .github/workflows/fix-readvault-import.yml
+          git add -A
           git commit -m "Fix ReadVault JSON import [readvault-import-fix]"
           git push
