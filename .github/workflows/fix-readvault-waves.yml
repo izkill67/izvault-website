@@ -1,0 +1,43 @@
+name: Fix ReadVault wave layering
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-waves:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fix ambient wave stacking
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('reading-tracker-v5.html')
+          s = p.read_text(encoding='utf-8')
+          old = '.ambient{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}'
+          new = '.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}'
+          if old in s:
+              s = s.replace(old, new, 1)
+          marker = 'body{position:relative}'
+          if marker not in s:
+              s = s.replace('</style>', 'body{position:relative}body > *:not(.ambient){position:relative;z-index:1}\n</style>', 1)
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reading-tracker-v5.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "Fix ReadVault wave visibility"
+          git push
