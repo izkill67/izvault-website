@@ -1,0 +1,72 @@
+from pathlib import Path
+import re
+
+path = Path('reading-tracker-v3.html')
+text = path.read_text(encoding='utf-8')
+
+pattern = re.compile(r"async function importList\(list\)\{.*?async function importOld\(\)\{.*?\}\n", re.S)
+replacement = '''async function importList(list){
+  const normalized=[];
+  for(const x of list||[]){
+    const title=String(x?.title??x?.name??'').trim();
+    if(!title)continue;
+    const genreValue=x?.genre??x?.genres??'';
+    const currentValue=x?.current_chapter??x?.currentChapter??x?.current??x?.chapter??0;
+    const totalValue=x?.total_chapter??x?.totalChapter??x?.total??x?.chapters??0;
+    const link=x?.link??x?.url??x?.reading_link??null;
+    const source=x?.source_url??x?.sourceUrl??x?.url??x?.link??null;
+    const cover=x?.cover_url??x?.coverUrl??x?.cover??x?.image??null;
+    normalized.push({user_id:user.id,title,author:x?.author??x?.writer??null,genre:Array.isArray(genreValue)?genreValue.join(', '):(genreValue||null),type:x?.type??x?.format??'Novel',status:x?.status??'Reading',current_chapter:Number(currentValue)||0,total_chapter:Number(totalValue)||0,link,rating:Number(x?.rating)||0,notes:x?.notes??x?.review??null,cover_url:cover,source_url:source});
+  }
+  if(!normalized.length)return 0;
+  const existing=await sb.from('books').select('title,link,source_url').eq('user_id',user.id);
+  if(existing.error)throw existing.error;
+  const seen=new Set((existing.data||[]).map(b=>`${String(b.title||'').trim().toLowerCase()}|${String(b.link||b.source_url||'').trim()}`));
+  const fresh=normalized.filter(b=>{
+    const key=`${b.title.trim().toLowerCase()}|${String(b.link||b.source_url||'').trim()}`;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+  let count=0;
+  for(let i=0;i<fresh.length;i+=5){
+    const r=await sb.from('books').insert(fresh.slice(i,i+5));
+    if(r.error)throw r.error;
+    count+=Math.min(5,fresh.length-i);
+  }
+  return count;
+}
+async function importFile(file){
+  try{
+    const raw=JSON.parse(await file.text());
+    const list=Array.isArray(raw)?raw:(Array.isArray(raw.books)?raw.books:(Array.isArray(raw.library)?raw.library:(Array.isArray(raw.data?.books)?raw.data.books:(Array.isArray(raw.data?.library)?raw.data.library:null))));
+    if(!list)throw new Error('No supported book list found.');
+    const count=await importList(list);
+    toast(count?`Imported ${count} books.`:'No new books were imported.');
+    await load();
+  }catch(e){
+    console.error(e);
+    toast(e?.message?`Import failed: ${e.message}`:'Import failed. Please check the JSON file.');
+  }
+}
+async function importOld(){
+  const raw=localStorage.getItem('rv3');
+  if(!raw)return toast('No old local tracker data was found on this device.');
+  try{
+    const data=JSON.parse(raw);
+    const list=Array.isArray(data)?data:(Array.isArray(data.books)?data.books:(Array.isArray(data.library)?data.library:null));
+    if(!list)throw new Error('Unsupported old format');
+    const count=await importList(list);
+    toast(count?`Imported ${count} books from the old tracker.`:'No new books were imported.');
+    await load();
+  }catch(e){
+    console.error(e);
+    toast(e?.message?`Old tracker import failed: ${e.message}`:'The old tracker data format could not be read.');
+  }
+}
+'''
+
+patched, count = pattern.subn(replacement, text, count=1)
+if count != 1:
+    raise SystemExit('Could not locate the existing importer block.')
+path.write_text(patched, encoding='utf-8')
+print('ReadVault importer patched successfully.')
