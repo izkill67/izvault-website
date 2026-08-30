@@ -1,9 +1,23 @@
-name: ReadVault patch test
+name: Fix ReadVault JSON import
 
 on: push
 
+permissions:
+  contents: write
+
 jobs:
-  test:
+  patch:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "ReadVault patch workflow is running"
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Apply importer patch
+        run: python .github/patch_readvault_import.py
+      - name: Commit patch and remove temporary files
+        run: |
+          rm -f .github/patch_readvault_import.py .github/workflows/fix-readvault-import.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix ReadVault JSON import [readvault-import-fix]"
+          git push
