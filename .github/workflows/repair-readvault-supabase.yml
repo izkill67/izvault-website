@@ -46,7 +46,7 @@ jobs:
 
           s, n = re.subn(
               r"const sb=.*?;let user=",
-              "const sb=(window.supabase&&typeof window.supabase.createClient==='function')?window.supabase.createClient('https://imkbmemvoqbbedbljueu.supabase.co','sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE'):null;let user=",
+              "const sb=(window.supabase&&typeof window.supabase.createClient==='function')?window.supabase.createClient('https://imkbmemvoqbbedbljueu.supabase.co','sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE'):null;window.__rv6_started=true;let user=",
               s,
               count=1,
               flags=re.S,
@@ -54,18 +54,25 @@ jobs:
           if n != 1:
               raise SystemExit('Could not locate Supabase client bootstrap')
 
-          s, n = re.subn(
-              r";\(async\(\)=>\{const r=await sb\.auth\.getSession\(\);.*?await load\(\)\}\)\(\);",
-              ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast('Cloud service failed to initialize. Please refresh.');return}const r=await sb.auth.getSession();if(r.error)throw r.error;user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}await load()}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast('Cloud connection failed. Please refresh and try again.')}})();",
-              s,
-              count=1,
-              flags=re.S,
-          )
-          if n != 1:
-              raise SystemExit('Could not locate ReadVault startup block')
+          old = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast('Cloud service failed to initialize. Please refresh.');return}const r=await sb.auth.getSession();if(r.error)throw r.error;user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}await load()}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast('Cloud connection failed. Please refresh and try again.')}})();"
+          new = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast('Cloud service failed to initialize. Please refresh.');return}window.__rv6_boot='client-ready';const r=await Promise.race([sb.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase auth timed out after 8 seconds')),8000))]);if(r.error)throw r.error;window.__rv6_boot='session-ready';user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}window.__rv6_boot='loading-books';await load();window.__rv6_boot='ready'}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast(e?.message||'Cloud connection failed. Please refresh and try again.')}})();"
+          if old not in s:
+              raise SystemExit('Could not locate current ReadVault startup block')
+          s = s.replace(old, new, 1)
 
           p.write_text(s, encoding='utf-8')
           PY
+
+      - name: Validate repaired JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s = Path('reading-tracker-v6.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?:[^>]*)>([\s\S]*?)</script>', s)
+          Path('/tmp/readvault-app-repaired.js').write_text(scripts[-1], encoding='utf-8')
+          PY
+          node --check /tmp/readvault-app-repaired.js
 
       - name: Commit repair
         run: |
