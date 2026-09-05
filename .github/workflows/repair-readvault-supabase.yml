@@ -15,6 +15,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate ReadVault JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s = Path('reading-tracker-v6.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script(?:[^>]*)>([\s\S]*?)</script>', s)
+          if not scripts:
+              raise SystemExit('No inline JavaScript found')
+          Path('/tmp/readvault-app.js').write_text(scripts[-1], encoding='utf-8')
+          print(f'Extracted {len(scripts[-1])} characters of app JavaScript')
+          PY
+          node --check /tmp/readvault-app.js
+
       - name: Repair Supabase bootstrap
         run: |
           python - <<'PY'
@@ -23,7 +37,6 @@ jobs:
           p = Path('reading-tracker-v6.html')
           s = p.read_text(encoding='utf-8')
 
-          # Prefer a second CDN and explicitly use the browser global.
           s = re.sub(
               r'<script src="https://[^\"]*supabase/supabase-js@2[^\"]*"></script>',
               '<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>',
