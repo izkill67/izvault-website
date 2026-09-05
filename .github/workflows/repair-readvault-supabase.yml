@@ -29,7 +29,7 @@ jobs:
           PY
           node --check /tmp/readvault-app.js
 
-      - name: Repair Supabase bootstrap
+      - name: Repair Supabase bootstrap and diagnostics
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -44,8 +44,17 @@ jobs:
               count=1,
           )
 
+          diagnostic = '''<script>\n(function(){\n  var c=document.getElementById('cloud'), n=document.getElementById('notice');\n  function show(msg){ if(c)c.textContent='● '+msg; if(n)n.hidden=false; }\n  window.addEventListener('error',function(e){ show('Cloud error: '+(e.message||'JavaScript error')); });\n  window.addEventListener('unhandledrejection',function(e){ var r=e&&e.reason; show('Cloud error: '+(r&&r.message?r.message:String(r||'Unhandled promise rejection'))); });\n  window.setTimeout(function(){\n    if(c && c.textContent.trim()==='● Cloud' && !window.__rv6_started){\n      show('Cloud error: App startup did not complete.');\n    }\n  },3000);\n})();\n</script>'''
+          marker = "window.__rv6_diagnostics=true"
+          if marker not in s:
+              diagnostic = diagnostic.replace("(function(){", "(function(){window.__rv6_diagnostics=true;")
+              target = '<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>'
+              if target not in s:
+                  raise SystemExit('Supabase CDN tag not found')
+              s = s.replace(target, target + diagnostic, 1)
+
           s, n = re.subn(
-              r"const sb=.*?;let user=",
+              r"let sb=.*?;let user=",
               "let sb=null;window.__rv6_started=true;try{if(window.supabase&&typeof window.supabase.createClient==='function'){sb=window.supabase.createClient('https://imkbmemvoqbbedbljueu.supabase.co','sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE')}}catch(e){window.__rv6_sdk_error=e?.message||String(e)};let user=",
               s,
               count=1,
@@ -54,11 +63,17 @@ jobs:
           if n != 1:
               raise SystemExit('Could not locate Supabase client bootstrap')
 
-          old = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast('Cloud service failed to initialize. Please refresh.');return}window.__rv6_boot='client-ready';const r=await Promise.race([sb.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase auth timed out after 8 seconds')),8000))]);if(r.error)throw r.error;window.__rv6_boot='session-ready';user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}window.__rv6_boot='loading-books';await load();window.__rv6_boot='ready'}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast(e?.message||'Cloud connection failed. Please refresh and try again.')}})();"
-          new = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast(window.__rv6_sdk_error||'Cloud service failed to initialize. Please refresh.');return}window.__rv6_boot='client-ready';const r=await Promise.race([sb.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase auth timed out after 8 seconds')),8000))]);if(r.error)throw r.error;window.__rv6_boot='session-ready';user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}window.__rv6_boot='loading-books';await load();window.__rv6_boot='ready'}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast(e?.message||'Cloud connection failed. Please refresh and try again.')}})();"
-          if old not in s:
+          old_load = "async function load(){const r=await sb.from('books').select('*').eq('user_id',user.id).order('created_at',{ascending:false});if(r.error){$('cloud').textContent='● Cloud error';toast('Unable to load your books.');return}books=r.data||[];"
+          new_load = "async function load(){const r=await Promise.race([sb.from('books').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase database request timed out after 10 seconds')),10000))]);if(r.error){$('cloud').textContent='● Cloud error';toast('Unable to load your books.');return}books=r.data||[];"
+          if old_load not in s:
+              raise SystemExit('Could not locate load() database request')
+          s = s.replace(old_load, new_load, 1)
+
+          old_start = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast(window.__rv6_sdk_error||'Cloud service failed to initialize. Please refresh.');return}window.__rv6_boot='client-ready';const r=await Promise.race([sb.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase auth timed out after 8 seconds')),8000))]);if(r.error)throw r.error;window.__rv6_boot='session-ready';user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}window.__rv6_boot='loading-books';await load();window.__rv6_boot='ready'}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast(e?.message||'Cloud connection failed. Please refresh and try again.')}})();"
+          new_start = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast(window.__rv6_sdk_error||'Cloud service failed to initialize. Please refresh.');return}window.__rv6_boot='client-ready';const r=await Promise.race([sb.auth.getSession(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase auth timed out after 8 seconds')),8000))]);if(r.error)throw r.error;window.__rv6_boot='session-ready';user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}window.__rv6_boot='loading-books';await load();window.__rv6_boot='ready'}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast(e?.message||'Cloud connection failed. Please refresh and try again.')}})();"
+          if old_start not in s:
               raise SystemExit('Could not locate current ReadVault startup block')
-          s = s.replace(old, new, 1)
+          s = s.replace(old_start, new_start, 1)
 
           p.write_text(s, encoding='utf-8')
           PY
