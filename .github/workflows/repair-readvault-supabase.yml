@@ -1,0 +1,45 @@
+name: Repair ReadVault Supabase startup
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[readvault-repair]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Repair Supabase bootstrap
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('reading-tracker-v6.html')
+          s = p.read_text(encoding='utf-8')
+          old = "<script src=\"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2\"></script>"
+          new = "<script src=\"https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js\"></script>"
+          s = s.replace(old, new)
+          old2 = "const sb=supabase.createClient('https://imkbmemvoqbbedbljueu.supabase.co','sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE');"
+          new2 = "const sb=(window.supabase&&typeof window.supabase.createClient==='function')?window.supabase.createClient('https://imkbmemvoqbbedbljueu.supabase.co','sb_publishable_Dosi6rJmV4SaGzLEClAYUA_1L2CdDfE'):null;"
+          s = s.replace(old2, new2)
+          old3 = ";(async()=>{const r=await sb.auth.getSession();user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}await load()})();"
+          new3 = ";(async()=>{try{if(!sb){$('cloud').textContent='● Cloud error';$('notice').hidden=false;toast('Cloud service failed to initialize. Please refresh.');return}const r=await sb.auth.getSession();if(r.error)throw r.error;user=r.data.session?.user||null;if(!user){$('notice').hidden=false;$('cloud').textContent='● Login required';return}await load()}catch(e){console.error(e);$('cloud').textContent='● Cloud error';toast('Cloud connection failed. Please refresh and try again.')}})();"
+          if old2 not in s:
+              raise SystemExit('Expected Supabase bootstrap was not found')
+          s = s.replace(old3, new3)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reading-tracker-v6.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix ReadVault cloud startup [readvault-repair]"
+          git push
